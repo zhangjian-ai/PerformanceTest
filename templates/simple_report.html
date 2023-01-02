@@ -1,0 +1,60 @@
+{% import 'macro.html' as macro %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>performance test report</title>
+    <style type="text/css">
+        .content {
+            border: 1px solid #03A9F3;
+            border-radius: 0.5em;
+            padding: 1.5em;
+        }
+
+        {% include 'main.css' %}
+    </style>
+</head>
+<body>
+<div class="content">
+    <!-- 标题 -->
+    <h1 style="color: darkgreen; text-align: center">{{ title or "性能测试报告" }}</h1>
+
+    <!-- 日期/测试人员 -->
+    <p style="text-align: center">
+        <span style="margin-right: 1em">测试人员: {{ tester or "追一" }}</span>
+        <span style="margin-left: 1em">测试日期: {{ date }}</span>
+    </p>
+
+    <!-- 导航 -->
+    <h2>目录</h2>
+    <ul>
+        {% if tables %}
+            {% for table in tables %}
+                <li><a href="#{{ table.title }}">{{ table.title }}</a></li>
+            {% endfor %}
+        {% endif %}
+
+        {% if charts %}
+            <li><a href="#charts">统计图表</a></li>
+        {% endif %}
+    </ul>
+
+    <!-- 表格 -->
+    {% if tables %}
+        {% for table in tables %}
+            {% if table.name and table.name == 'replicas' %}
+                {{ macro.replicas(table) }}
+            {% else %}
+                {{ macro.table(table) }}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+    <!-- 图表 -->
+    {% if charts %}
+        {{ macro.chart(charts) }}
+    {% endif %}
+</div>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!-- 普通表格 -->
+{% macro table(table) -%}
+    {% if table.title %}
+        <h2>{{ table.title }}</h2>
+    {% endif %}
+    {% set class=table.type or 'general' %}
+    {% if class == 'general' %}
+        <table border="1" class="{{ class }}" id="{{ table.title }}">
+    {% else %}
+        <table class="{{ class }}" id="{{ table.title }}">
+    {% endif %}
+<tr>
+    {% for head in table.heads %}
+        <th>{{ head }}</th>
+    {% endfor %}
+</tr>
+{% for line in table.lines %}
+    <tr>
+        {% for val in line %}
+            <td>{{ val }}</td>
+        {% endfor %}
+    </tr>
+{% endfor %}
+</table>
+{%- endmacro %}
+
+<!-- k8s副本集专用表格 -->
+{% macro replicas(table) -%}
+    {% if table.title %}
+        <h2>{{ table.title }}</h2>
+    {% endif %}
+    <table class="general" border="1" id="{{ table.title }}">
+        <tr>
+            {% for head in table.heads %}
+                <th>{{ head }}</th>
+            {% endfor %}
+        </tr>
+        {% for line in table.lines %}
+            <tr>
+                {% for i in range(10) %}
+                    <td style="background-color: {{ 'red' if i > 6 and line[i] != line[6] else 'block' }}">{{ line[i] }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+{%- endmacro %}
+
+{% macro chart(charts) -%}
+    <h2 id="charts">统计图表</h2>
+    {% for chart in charts %}
+        <details>
+            <summary><span class="placeholder">{{ chart[0] }}</span></summary>
+            <img src="cid:{{ chart[1] }}" alt="">
+        </details>
+    {% endfor %}
+{%- endmacro %}
+
+

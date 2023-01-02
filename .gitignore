@@ -1,0 +1,19 @@
+# Default ignored files
+/.idea/workspace.xml
+/__pycache__/*
+/build/*
+/include/*
+/Lib/*
+/Scripts/*
+/tcl/*
+*.spec
+*.pyc
+/venv/
+/logs/
+*.iml
+*.xml
+
+.DS_Store
+.idea
+
+#config/k8s

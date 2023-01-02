@@ -1,0 +1,55 @@
+h2 {
+    margin-bottom: 0;
+}
+
+th {
+    height: 1.5em;
+    padding: 3px;
+}
+
+tr {
+    height: 1.5em;
+    padding: 3px;
+}
+
+.general {
+    border: solid 1px black;
+    border-collapse: collapse;
+    text-align: center;
+}
+
+.general th {
+    background-color: lightblue;
+}
+
+.no-border {
+    border-collapse: collapse;
+    border: none;
+    text-align: center;
+}
+
+.no-border th {
+    background-color: tomato;
+}
+
+.no-border tr:nth-child(2n) {
+    background-color: lightgray;
+}
+
+details {
+    border: darkgrey dashed 1px;
+    margin: 0.2em 0;
+    padding: 0 0.5em;
+    border-radius: 0.2em;
+    background-color: lightblue;
+}
+
+.placeholder {
+    font-size: 0.9em;
+    vertical-align: center
+}
+
+img {
+    width: 100%;
+    margin: 0.5em 0;
+}
