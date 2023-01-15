@@ -6,8 +6,8 @@ from locust.runners import MasterRunner, LocalRunner
 from locust.stats import calculate_response_time_percentile as cp
 
 from libs.mail import text_instance, mail_instance, send_mail
-from libs.monitor import LocalMonitor
-from libs.tool_cls import ScheduleJob
+from libs.monitor import LocalMonitor, KubernetesMonitor
+from libs.schedule import ScheduleJob
 
 
 class CRunner(metaclass=ABCMeta):
@@ -17,39 +17,36 @@ class CRunner(metaclass=ABCMeta):
 
     @abstractmethod
     def __init__(self, environment, monitor=True):
+        self.monitor = monitor
         self.environment = environment
 
-        if not isinstance(environment.runner, MasterRunner):
-            # 请求样本集
-            self.samples = []
-
+        # 前后置操作通常只需要在主节点执行
         if isinstance(environment.runner, (MasterRunner, LocalRunner)):
-            # 测试人员
-            self.tester = None
+            # 固定框架参数
+            self.edition = getattr(environment.parsed_options, "edition", "-")
 
-            # 如果发布了知识则对其赋值。10 位的时间戳
-            self.publish_start = None
-            self.publish_end = None
+            self.tester = getattr(environment.parsed_options, "tester", "xiaozhang")
+            self.recipients = getattr(environment.parsed_options, "recipients", None)
 
-            # 测试数据统计信息
-            self.stat = None
+            self.NAMESPACE = getattr(environment.parsed_options, "NAMESPACE", None)
+            self.kube_config = getattr(environment.parsed_options, "kube_config", None)
 
-            # 聚合结果集
-            self.aggregations = []
-
-            # 普通统计表格
+            # 需要渲染到报告的表格，列表用于保存多个表格对象
             self.tables = []
 
-            # 邮件图表
+            # 邮件图表，保存图表对象的元组。(名字, ID, 邮件图片对象)
             self.charts = []
 
-            # 邮件附件
+            # 邮件附件，content对象或者文件路径
             self.annexes = []
 
             # 默认收集 rps、response_time 过程指标
-            if monitor:
-                self.local_monitor = LocalMonitor(environment)
-                ScheduleJob.add_job(self.local_monitor.record_metrics, interval=2)
+            if self.monitor:
+                self.lm = LocalMonitor(environment)
+                ScheduleJob.add_job(self.lm.record_metrics, interval=2)
+
+            # k8s监控
+            self.k8s = KubernetesMonitor(self.NAMESPACE, self.kube_config)
 
     @abstractmethod
     def set_up(self):
@@ -70,7 +67,6 @@ class CRunner(metaclass=ABCMeta):
     def build_sample(self):
         """
         实现该方法，以构建请求样本
-        建议放入 samples 列表中
         * 框架自动调用 *
         """
         pass
@@ -78,27 +74,25 @@ class CRunner(metaclass=ABCMeta):
     def aggregate(self):
         """
         实现该方法，以收集各个阶段的聚合结果
-        建议放入 aggregations 列表中
+        * 多阶段策略自动调用 *
+        """
+        pass
+
+    def conclude(self):
+        """
+        实现该方法，以归纳测试数据，构建好表格、图片等报告邮件需要的信息
         * 框架自动调用 *
         """
         pass
 
-    def arrange(self):
-        """
-        实现该方法，以整理各类型数据
-        子类整理的数据请一定放入指定列表，
-        基类已经实现常用的表格和图表，子类如需使用，完成调用即可
-        注意: 该方法将被 send_mail 自动调用，将从指定的列表取值
-        """
-        pass
+    # ====================== 下面是可选的一些通用的方法 ======================
 
-    def default_aggregate(self):
+    def default_aggr(self, total) -> dict:
         """
-        默认聚合指标
-        可以不使用而全部自定义
-        :return:
+        默认聚合指标，收集通用的聚合指标
+        可以不使用而全部自定义，也可以通过入参追加定制化的聚合指标
+        total: environment.stats.total
         """
-        total = self.environment.stats.total
 
         return {
             "开始时间": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(total.start_time)),
@@ -120,9 +114,9 @@ class CRunner(metaclass=ABCMeta):
             "PPS": round(total.total_rps - total.total_fail_per_sec, 2)
         }
 
-    def description_table(self, data: dict = None):
+    def describe_table(self, data: dict = None) -> dict:
         """
-        描述信息表格
+        测试的一些描述信息
         已添加常用的字段，可通过参数传入想要补充的字段信息
         """
         # 运行模式
@@ -136,17 +130,12 @@ class CRunner(metaclass=ABCMeta):
         # 时间信息
         start = self.environment.shape_class.begin / 1000
         end = self.environment.shape_class.finish / 1000
-        publish_start = self.environment.c_runner.publish_start
-        publish_end = self.environment.c_runner.publish_end
 
         start = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))
         end = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))
 
-        publish_start = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(publish_start)) if publish_start else "-"
-        publish_end = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(publish_end)) if publish_end else "-"
-
-        heads = ["运行模式", "节点数量", "测试开始", "测试结束", "发布开始", "发布结束"]
-        line = [run_mode, workers, start, end, publish_start, publish_end]
+        heads = ["运行模式", "节点数量", "测试开始", "测试结束"]
+        line = [run_mode, workers, start, end]
 
         # 添加自定义描述信息
         if isinstance(data, dict):
@@ -158,41 +147,37 @@ class CRunner(metaclass=ABCMeta):
 
         data = {"title": "测试描述信息", "heads": heads, "lines": [line]}
 
-        self.tables.append(data)
+        return data
 
-    def knowledge_table(self):
+    def aggregate_table(self, aggregates: list):
         """
-        测试数据表格
+        将多阶段的聚合数据规范成聚合报告表格
         """
-        if isinstance(self.stat, dict):
-            table = {
-                "title": "测试数据",
-                "heads": self.stat.keys(),
-                "lines": [self.stat.values()]
-            }
+        data = {"title": "聚合报告", "heads": aggregates[0].keys(), "lines": []}
+        for res in aggregates:
+            data["lines"].append(res.values())
 
-            self.tables.append(table)
+        return data
 
-    def aggregate_table(self):
+    def collect_monitor(self):
         """
-        聚合报告表格
+        收集环境信息，监控图表
         """
-        # 聚合报告
-        if self.aggregations:
-            data = {"title": "聚合报告", "heads": self.aggregations[0].keys(), "lines": []}
-            for res in self.aggregations:
-                data["lines"].append(res.values())
+        # 实时数据采集
+        if ScheduleJob.running:
+            # 本地监控
+            if self.monitor:
+                self.charts.append(self.lm.rps_chart)
+                self.charts.append(self.lm.response_time_chart)
 
-            self.tables.append(data)
+            # 静态资源
+            if self.k8s.status:
+                self.tables.append(self.k8s.namespace_resource)
+                self.tables.append(self.k8s.service_resource)
+                self.tables.append(self.k8s.pod_resource)
 
-    def local_charts(self):
-        """
-        本地监控图表
-        """
-        # 收集默认图表
-        if ScheduleJob.GRANT:
-            self.charts.append(self.local_monitor.rps_chart)
-            self.charts.append(self.local_monitor.response_time_chart)
+                # 统计图表
+                self.charts.extend(self.k8s.service_usage_charts)
 
     def send_mail(self, title: str = "性能测试报告", recipients: list = None, **kwargs):
         """
@@ -200,8 +185,6 @@ class CRunner(metaclass=ABCMeta):
         :param title: 报告标题
         :param recipients: 收件人
         """
-        # 发邮件之前，需要整理数据
-        self.arrange()
 
         # 生成邮件并发送
         date = time.strftime('%Y-%m-%d %H:%M', time.localtime(self.environment.shape_class.begin / 1000))

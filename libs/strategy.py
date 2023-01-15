@@ -5,9 +5,10 @@ from typing import Optional, Tuple
 from locust import LoadTestShape
 
 
-class TestStrategy(LoadTestShape):
+class MultiStageStrategy(LoadTestShape):
     """
-    自定义负载策略，组织测试的并发数、测试时长。
+    多阶段测试策略
+    组织多轮次 并发数、测试时长 的测试
     如果使用测试策略进行测试，则需要你在 init 钩子为 strategies、environment 赋值。
         strategies: 一个列表，每一项作为一个策略。例如: [{"duration": 100, "users": 10, "spawn_rate": 10}, {}, {}]
             duration: 当前策略的测试周期
@@ -25,7 +26,7 @@ class TestStrategy(LoadTestShape):
 
     def __init__(self):
         logging.info(f"🚚 The test will begin")
-        super(TestStrategy, self).__init__()
+        super(MultiStageStrategy, self).__init__()
 
         # 需要在locust文件通知策略正式开始执行，否则将将一直等待
         self.start = False
@@ -92,15 +93,16 @@ class TestStrategy(LoadTestShape):
         return self.strategies[self.point]["users"], self.strategies[self.point]["spawn_rate"]
 
 
-class CallTestStrategy(LoadTestShape):
+class SimpleStrategy(LoadTestShape):
     """
-    自定义负载策略，组织测试的并发数、测试时长。
+    简单策略
+    控制单个虚拟用户的起停
     同时需要你在locust所有前置工作完成后，主动告知策略开始执行。即设置 environment.shape_class.start = True
     """
 
     def __init__(self):
         logging.info(f"🚚 The test will begin")
-        super(CallTestStrategy, self).__init__()
+        super(SimpleStrategy, self).__init__()
 
         # 需要在locust文件通知策略正式开始执行，否则将将一直等待
         self.start = False
@@ -124,3 +126,97 @@ class CallTestStrategy(LoadTestShape):
         # 结束测试
         self.finish = round(time.time() * 1000)
         return None
+
+
+class StrategySupport:
+    """
+    策略辅助类
+    """
+
+    @staticmethod
+    def strategy_stage(duration, users, spawn_rate, interval=None):
+        """
+        标准策略对象
+        :param duration:
+        :param users:
+        :param spawn_rate:
+        :param interval:
+        :return:
+        """
+        strategy = {
+            "duration": duration,
+            "users": users,
+            "spawn_rate": spawn_rate
+        }
+
+        if interval:
+            strategy["interval"] = interval
+
+        return strategy
+
+    @classmethod
+    def parse_strategy(cls, options) -> list:
+        """
+        根据入参，返回一个有效的strategy列表
+        :param options:
+        :return:
+        """
+        strategy = getattr(options, "strategy", 0)
+        strategies = []
+
+        if not strategy:
+            logging.info(f"📚 strategies information: {strategies}")
+            return strategies
+
+        args = [int(_) for _ in strategy.split("_")]
+
+        # 校验策略是否正确
+        if len(args) != 4:
+            logging.info(f"⚠️ 策略非法，无法完成解析")
+            logging.info(f"📚 strategies information: {strategies}")
+            return strategies
+
+        start, end, step, duration = args
+
+        # 起始并发数大于结束并发数
+        if start > end:
+            while True:
+                spawn_rate = max(start, 1)
+                strategies.append(cls.strategy_stage(duration, start, spawn_rate))
+
+                # 每个并发阶段结束，都默认给一个休息时间，通常是测试时间的1/3，但最大不超过90s
+                strategies.append(cls.strategy_stage(min(duration // 3, 90), 0, spawn_rate))
+
+                if start - step <= end:
+                    spawn_rate = max(end, 1)
+                    strategies.append(cls.strategy_stage(duration, end, spawn_rate))
+                    strategies.append(cls.strategy_stage(min(duration // 3, 90), 0, spawn_rate))
+                    break
+
+                # 迭代
+                start -= step
+        elif start < end:
+            while True:
+                # 默认所有用户创建和注销都在3s完成
+                spawn_rate = max(start, 1)
+                strategies.append(cls.strategy_stage(duration, start, spawn_rate))
+                strategies.append(cls.strategy_stage(min(duration // 3, 90), 0, spawn_rate))
+
+                if start + step >= end:
+                    spawn_rate = max(end, 1)
+                    strategies.append(cls.strategy_stage(duration, end, spawn_rate))
+                    strategies.append(cls.strategy_stage(min(duration // 3, 90), 0, spawn_rate))
+                    break
+
+                # 迭代
+                start += step
+        else:
+            spawn_rate = max(end, 1)
+            strategies.append(cls.strategy_stage(duration, end, spawn_rate))
+            strategies.append(cls.strategy_stage(min(duration // 3, 90), 0, spawn_rate))
+
+        # 调整策略开始的停留时间不超过30，通常取为压测时长的1/3
+        strategies.insert(0, cls.strategy_stage(min(duration // 3, 30), 0, 1))
+
+        logging.info(f"📚 strategies information: {strategies}")
+        return strategies

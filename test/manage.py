@@ -213,7 +213,13 @@ def build_help(file) -> str:
         label = f"【默认值：{default}{', required' if required else ''}{', multi' if multi else ''}】"
         string += f"{name.rjust(24)}: {label.ljust(48)} {text}\n"
 
-    return string + "\n"
+    default = f"{'--edition'.rjust(24)}: {'【默认值：null】'.ljust(48)} 版本号\n" \
+              f"{'--tester'.rjust(24)}: {'【默认值：null】'.ljust(48)} 测试人员信息\n" \
+              f"{'--recipients'.rjust(24)}: {'【默认值：[], multi】'.ljust(48)} 测试报告收件人邮箱\n" \
+              f"{'--NAMESPACE'.rjust(24)}: {'【默认值：null】'.ljust(48)} 测试环境在部署集群中的ns\n" \
+              f"{'--kube_config'.rjust(24)}: {'【默认值：null】'.ljust(48)} kubeConfig 文件名称\n\n"
+
+    return string + default
 
 
 def show_config(file):

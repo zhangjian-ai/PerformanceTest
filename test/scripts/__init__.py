@@ -1,12 +1,12 @@
 import os
-import time
 import logging
 import traceback
 
 from locust import events, stats
 from locust.runners import MasterRunner, LocalRunner
 
-from libs.tool_cls import ScheduleJob, Strategy
+from libs.schedule import ScheduleJob
+from libs.strategy import StrategySupport
 
 
 def register(c_runner=None, strategy_cls=None):
@@ -28,11 +28,23 @@ def register(c_runner=None, strategy_cls=None):
     # 配置瞬时指标的统计窗口，默认是最近的10s
     stats.CURRENT_RESPONSE_TIME_PERCENTILE_WINDOW = 2
 
+    # 默认命令行
+    @events.init_command_line_parser.add_listener
+    def _(parser):
+        """
+        注册框架默认的命令行参数
+        """
+        parser.add_argument("--edition")
+        parser.add_argument("--tester")
+        parser.add_argument("--recipients", nargs="+", default=[])
+        parser.add_argument("--NAMESPACE")
+        parser.add_argument("--kube_config")
+
     @events.init.add_listener
     def _(environment, **kwargs):
         # 只在主节点为策略类绑定信息
         if isinstance(environment.runner, (MasterRunner, LocalRunner)):
-            strategy_cls.strategies = Strategy.parse_strategy(environment.parsed_options)
+            strategy_cls.strategies = StrategySupport.parse_strategy(environment.parsed_options)
             strategy_cls.environment = environment
 
     @events.test_start.add_listener
@@ -58,34 +70,14 @@ def register(c_runner=None, strategy_cls=None):
                 environment.c_runner.build_sample()
 
             if isinstance(environment.runner, (MasterRunner, LocalRunner)):
-                # 如果当前测试进行了数据发布，那么在所有策略之前加一个2分钟的等待时间
-                # 通过CRunner类的publish_end来判断
-                if getattr(environment.shape_class, "strategies",  0) and environment.c_runner.publish_end:
-                    wait_stage = Strategy.strategy_stage(120, 0, 5)
-                    environment.shape_class.strategies.insert(0, wait_stage)
-
                 # 通知策略开始执行
                 environment.shape_class.start = True
 
-                # 调度任务授权并开始调度
-                ScheduleJob.GRANT = True
+                # 调度任务开始执行
                 ScheduleJob.run()
 
         except Exception as e:
             logging.error(f"❌ [test_start]测试异常终止({e})\n\n{traceback.format_exc()}")
-
-            # if isinstance(environment.runner, (MasterRunner, LocalRunner)):
-            #     try:
-            #         # 结束任务调度
-            #         ScheduleJob.FINISH = True
-            #         # 异常结束是策略无法给结束时间正确赋值，这里手动给值避免teardown出错
-            #         environment.shape_class.finish = round(time.time() * 1000)
-            #
-            #         # 保存测试数据记录信息，并执行后置
-            #         environment.c_runner.save_records()
-            #         environment.c_runner.tear_down()
-            #     except Exception as e:
-            #         logging.error(f"❌ [test_start]测试异常终止({e})\n{traceback.format_exc()}")
 
             # 终止所有测试进程
             os.system("kill -9 $(ps -ef | grep 'locust' | awk '{print $2}')")
@@ -101,8 +93,8 @@ def register(c_runner=None, strategy_cls=None):
         # 后处理
         if isinstance(environment.runner, (MasterRunner, LocalRunner)):
             try:
-                # 结束任务调度
-                ScheduleJob.FINISH = True
+                # 规整测试数据
+                environment.c_runner.conclude()
 
                 # 执行后置
                 environment.c_runner.tear_down()
