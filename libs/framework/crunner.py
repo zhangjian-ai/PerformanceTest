@@ -2,12 +2,15 @@ import time
 import logging
 
 from abc import ABCMeta, abstractmethod
+
+from locust import User
 from locust.runners import MasterRunner, LocalRunner
 from locust.stats import calculate_response_time_percentile as cp
 
-from libs.mail import text_instance, mail_instance, send_mail
-from libs.monitor import LocalMonitor, KubernetesMonitor
-from libs.schedule import ScheduleJob
+from libs.framework.mail import Mail
+from libs.framework.utils import logger
+from libs.framework.schedule import ScheduleJob
+from libs.framework.monitor import LocalMonitor, KubernetesMonitor
 
 
 class CRunner(metaclass=ABCMeta):
@@ -24,12 +27,16 @@ class CRunner(metaclass=ABCMeta):
         if isinstance(environment.runner, (MasterRunner, LocalRunner)):
             # 固定框架参数
             self.edition = getattr(environment.parsed_options, "edition", "-")
+            self.tester = getattr(environment.parsed_options, "tester", "-")
 
-            self.tester = getattr(environment.parsed_options, "tester", "xiaozhang")
-            self.recipients = getattr(environment.parsed_options, "recipients", None)
-
-            self.NAMESPACE = getattr(environment.parsed_options, "NAMESPACE", None)
+            self.NAMESPACE = getattr(environment.parsed_options, "namespace", None)
             self.kube_config = getattr(environment.parsed_options, "kube_config", None)
+
+            # 测试样本
+            self.samples = []
+
+            # 各阶段的统计数据
+            self.aggregates = []
 
             # 需要渲染到报告的表格，列表用于保存多个表格对象
             self.tables = []
@@ -64,9 +71,16 @@ class CRunner(metaclass=ABCMeta):
         """
         pass
 
+    @abstractmethod
+    def call(self, user: User):
+        """
+        实现请求调用及自定义结果
+        * 在User类的task中调用 *
+        """
+
     def build_sample(self):
         """
-        实现该方法，以构建请求样本
+        实现该方法，以构建请求样本。推荐放入 samples 中
         * 框架自动调用 *
         """
         pass
@@ -74,25 +88,29 @@ class CRunner(metaclass=ABCMeta):
     def aggregate(self):
         """
         实现该方法，以收集各个阶段的聚合结果
-        * 多阶段策略自动调用 *
+        * 框架自动调用 *
         """
-        pass
+        self.aggregates.append(self.default_aggr())
 
     def conclude(self):
         """
         实现该方法，以归纳测试数据，构建好表格、图片等报告邮件需要的信息
         * 框架自动调用 *
         """
-        pass
+        self.tables.append(self.describe_table())
+        self.tables.append(self.aggregate_table())
+
+        self.collect_monitor()
 
     # ====================== 下面是可选的一些通用的方法 ======================
 
-    def default_aggr(self, total) -> dict:
+    def default_aggr(self) -> dict:
         """
         默认聚合指标，收集通用的聚合指标
         可以不使用而全部自定义，也可以通过入参追加定制化的聚合指标
         total: environment.stats.total
         """
+        total = self.environment.stats.total
 
         return {
             "开始时间": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(total.start_time)),
@@ -149,12 +167,12 @@ class CRunner(metaclass=ABCMeta):
 
         return data
 
-    def aggregate_table(self, aggregates: list):
+    def aggregate_table(self):
         """
         将多阶段的聚合数据规范成聚合报告表格
         """
-        data = {"title": "聚合报告", "heads": aggregates[0].keys(), "lines": []}
-        for res in aggregates:
+        data = {"title": "聚合报告", "heads": self.aggregates[0].keys(), "lines": []}
+        for res in self.aggregates:
             data["lines"].append(res.values())
 
         return data
@@ -179,17 +197,17 @@ class CRunner(metaclass=ABCMeta):
                 # 统计图表
                 self.charts.extend(self.k8s.service_usage_charts)
 
-    def send_mail(self, title: str = "性能测试报告", recipients: list = None, **kwargs):
+    def send_mail(self, title: str = "性能测试报告", **kwargs):
         """
         发送邮件
         :param title: 报告标题
-        :param recipients: 收件人
         """
+        mail = Mail(self.environment.parsed_options)
 
         # 生成邮件并发送
         date = time.strftime('%Y-%m-%d %H:%M', time.localtime(self.environment.shape_class.begin / 1000))
-        text = text_instance(title=title, tables=self.tables, charts=[x[0:2] for x in self.charts],
-                             tester=self.tester, date=date, **kwargs)
-        email = mail_instance(content=text, recipients=recipients, subject=title,
-                              charts=self.charts, annex_files=self.annexes)
-        send_mail(email)
+        text = mail.text_instance(title=title, tables=self.tables, charts=[x[0:2] for x in self.charts],
+                                  tester=self.tester, date=date, **kwargs)
+        email = mail.mail_instance(content=text, subject=title,
+                                   charts=self.charts, annex_files=self.annexes)
+        mail.send_mail(email)

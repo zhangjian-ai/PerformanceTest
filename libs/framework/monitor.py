@@ -9,10 +9,10 @@ from requests import session
 from email.mime.image import MIMEImage
 from kubernetes import client, config
 
-from libs.cfaker import Dynamic
-from libs.cio import load_yaml
-from libs.constants import K8S_DIR
-from libs.schedule import ScheduleJob
+from libs.framework.cfaker import Dynamic
+from libs.framework.cio import load_yaml
+from libs.framework.schedule import ScheduleJob
+from libs.settings import CONFIG_DIR
 
 
 def chart(x_axis: list, y_axis: Optional[Tuple[str, list] or List[Tuple[str, list]]],
@@ -193,7 +193,7 @@ class KubernetesMonitor:
                 config_yaml += ".yaml"
 
             self.namespace = namespace
-            self.config_yaml = os.path.join(K8S_DIR, config_yaml)
+            self.config_yaml = os.path.join(CONFIG_DIR, config_yaml)
 
             # 检查配置
             if not os.path.exists(self.config_yaml):
