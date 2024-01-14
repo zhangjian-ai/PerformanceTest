@@ -59,10 +59,6 @@ def _(environment, **kwargs):
             # 主节点初始化环境
             environment.shape_class.c_runner.set_up()
 
-        if not isinstance(environment.runner, MasterRunner):
-            # 准备测试样本
-            environment.shape_class.c_runner.build_sample()
-
         if isinstance(environment.runner, (MasterRunner, LocalRunner)):
             # 通知策略开始执行
             environment.shape_class.start = True
