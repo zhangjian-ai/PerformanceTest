@@ -88,9 +88,6 @@ def _(environment, **kwargs):
     # 后处理
     if isinstance(environment.runner, (MasterRunner, LocalRunner)):
         try:
-            # 规整测试数据
-            environment.shape_class.c_runner.conclude()
-
             # 执行后置
             environment.shape_class.c_runner.tear_down()
 

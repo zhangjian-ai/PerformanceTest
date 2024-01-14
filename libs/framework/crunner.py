@@ -26,14 +26,10 @@ class CRunner(metaclass=ABCMeta):
         # 前后置操作通常只需要在主节点执行
         if isinstance(environment.runner, (MasterRunner, LocalRunner)):
             # 固定框架参数
-            self.edition = getattr(environment.parsed_options, "edition", "-")
             self.tester = getattr(environment.parsed_options, "tester", "-")
 
-            self.NAMESPACE = getattr(environment.parsed_options, "namespace", None)
+            self.NAMESPACE = getattr(environment.parsed_options, "NAMESPACE", None)
             self.kube_config = getattr(environment.parsed_options, "kube_config", None)
-
-            # 测试样本
-            self.samples = []
 
             # 各阶段的统计数据
             self.aggregates = []
@@ -59,7 +55,7 @@ class CRunner(metaclass=ABCMeta):
     def set_up(self):
         """
         子类的所有前置操作应该在这里组织并执行
-        * 框架自动调用 *
+        * 在测试开始前 框架自动调用 *
         """
         pass
 
@@ -67,52 +63,32 @@ class CRunner(metaclass=ABCMeta):
     def tear_down(self):
         """
         子类的所有后置操作应该在这里组织并执行
-        * 框架自动调用 *
-        """
-        pass
-
-    @abstractmethod
-    def call(self, user: User):
-        """
-        实现请求调用及自定义结果
-        * 在User类的task中调用 *
-        """
-
-    def build_sample(self):
-        """
-        实现该方法，以构建请求样本。推荐放入 samples 中
-        * 框架自动调用 *
-        """
-        pass
-
-    def aggregate(self):
-        """
-        实现该方法，以收集各个阶段的聚合结果
-        * 框架自动调用 *
-        """
-        self.aggregates.append(self.default_aggr())
-
-    def conclude(self):
-        """
-        实现该方法，以归纳测试数据，构建好表格、图片等报告邮件需要的信息
-        * 框架自动调用 *
+        * 在测试结束前 框架自动调用 *
         """
         self.tables.append(self.describe_table())
         self.tables.append(self.aggregate_table())
 
         self.collect_monitor()
 
-    # ====================== 下面是可选的一些通用的方法 ======================
+        self.send_mail()
 
-    def default_aggr(self) -> dict:
+    @abstractmethod
+    def call(self, user: User):
         """
-        默认聚合指标，收集通用的聚合指标
-        可以不使用而全部自定义，也可以通过入参追加定制化的聚合指标
-        total: environment.stats.total
+        实现请求调用及自定义判定结果
+        * 默认TestUser的task中调用 *
+        """
+        pass
+
+    @abstractmethod
+    def aggregate(self):
+        """
+        实现该方法，以收集各个阶段的聚合结果
+        * 测试过程中用户数量发生变化时，框架自动调用 *
         """
         total = self.environment.stats.total
 
-        return {
+        self.aggregates.append({
             "开始时间": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(total.start_time)),
             "并发数量": self.environment.runner.user_count,
             "测试时长": str(round(total.last_request_timestamp - total.start_time)) + "s",
@@ -130,8 +106,9 @@ class CRunner(metaclass=ABCMeta):
             "fail%": round(total.fail_ratio * 100, 2),
             "FPS": round(total.total_fail_per_sec, 2),
             "PPS": round(total.total_rps - total.total_fail_per_sec, 2)
-        }
+        })
 
+    # ====================== 下面是可选的一些通用的方法 ======================
     def describe_table(self, data: dict = None) -> dict:
         """
         测试的一些描述信息
