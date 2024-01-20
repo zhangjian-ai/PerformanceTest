@@ -15,6 +15,7 @@ if not cmd.get("f"):
 
 file = cmd.get("f")
 
+# 日志文件
 log_file = os.path.join(LOG_DIR, f"{os.path.splitext(file)[0]}_{time.strftime('%Y-%m-%d_%H:%M')}.log")
 
 # 后台运行测试

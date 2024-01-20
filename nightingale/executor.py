@@ -33,6 +33,8 @@ class Executor:
         # set log
         set_logging(cmd.get("loglevel", "INFO"), cmd.get("logfile"))
 
+        #
+
     def _test_before(self):
         """
         测试前的逻辑
@@ -63,6 +65,9 @@ class Executor:
 
         # command line args
         self.options = parse_options()
+
+        if hasattr(self.options, "h"):
+            logger.error(self.options)
 
         # env
         self.env = create_environment(

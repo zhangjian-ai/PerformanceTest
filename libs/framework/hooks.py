@@ -1,10 +1,10 @@
 import os
-import logging
 import traceback
 
 from locust import events, stats
-from locust.runners import MasterRunner, LocalRunner, logger
+from locust.runners import MasterRunner, LocalRunner
 
+from libs.framework.utils import logger
 from libs.framework.schedule import ScheduleJob
 from libs.framework.strategy import DefaultStrategy
 
@@ -18,20 +18,24 @@ def _(parser):
     """
     注册框架默认的命令行参数
     """
-
-    parser.add_argument("--strategy")
+    # 策略配置
+    parser.add_argument("--strategy", help="测试策略 开始并发数_结束并发数_步进数_持续时间(s)")
     parser.add_argument("--strategy_mode", type=int, default=0, help="策略模式。0 并发间配置间隔；1 并发间没有间隔；2 去掉所有缓冲时间")
-    parser.add_argument("--tester")
-    parser.add_argument("--namespace")
-    parser.add_argument("--kube_config")
+
+    # 测试人员
+    parser.add_argument("--tester", help="测试人员名字")
+
+    # k8s 配置
+    parser.add_argument("--kube_ns", help="kubernetes namespace 名称")
+    parser.add_argument("--kube_config", help="kubernetes kube_config 文件名称，需要手动挂在到config路径下")
 
     # 邮件相关配置
-    parser.add_argument("--smtp_server", default='smtp.exmail.qq.com')
-    parser.add_argument("--ssl_port", default='465')
-    parser.add_argument("--sender_name", default='Performance-Test')
-    parser.add_argument("--from_addr", default=None)
-    parser.add_argument("--password", default=None)
-    parser.add_argument("--recipients", nargs="+", default=[])
+    parser.add_argument("--smtp_server", default='smtp.exmail.qq.com', help="邮箱服务地址")
+    parser.add_argument("--ssl_port", default='465', help="邮箱服务端口")
+    parser.add_argument("--sender_name", default='Performance-Test', help="发件人名称")
+    parser.add_argument("--from_addr", default=None, help="发件人邮箱")
+    parser.add_argument("--password", default=None, help="发件人邮箱密码")
+    parser.add_argument("--recipients", nargs="+", default=[], help="收件人邮箱 多个用空格隔开")
 
 
 @events.init.add_listener
@@ -67,10 +71,12 @@ def _(environment, **kwargs):
             ScheduleJob.run()
 
     except Exception as e:
-        logger.error(f"❌ [test_start]测试异常终止({e})\n\n{traceback.format_exc()}")
+        logger.error(f"[ test_start ]测试异常终止({e})\n\n{traceback.format_exc()}")
 
         # 终止所有测试进程
         os.system("kill -9 $(ps -ef | grep 'locust' | awk '{print $2}')")
+
+        logger.info("Test is finished with error")
 
 
 @events.test_stop.add_listener
@@ -88,8 +94,10 @@ def _(environment, **kwargs):
             environment.shape_class.c_runner.tear_down()
 
         except Exception as e:
-            logger.error(f"❌ [test_stop]测试异常终止({e})\n\n{traceback.format_exc()}")
+            logger.error(f"[ test_stop ]测试异常终止({e})\n\n{traceback.format_exc()}")
             # 终止所有测试进程
             os.system("kill -9 $(ps -ef | grep 'locust' | awk '{print $2}')")
+
+            logger.info("Test is finished with error")
         else:
-            logger.info("✅  test is finished")
+            logger.info("Test is finished")

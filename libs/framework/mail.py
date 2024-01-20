@@ -24,6 +24,9 @@ class Mail:
         self.password = options.password
         self.recipients = options.recipients
 
+        if not all([self.from_addr, self.password, self.recipients]):
+            raise RuntimeError("无法初始化Mail，缺少必要的参数")
+
     def send_mail(self, msg: MIMEBase):
         try:
             if self.recipients:

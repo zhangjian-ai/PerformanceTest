@@ -73,6 +73,7 @@ class DefaultStrategy(LoadTestShape):
         if self.get_run_time() >= self.strategies[self.point]["duration"]:
             # 只要当前阶段由用户在测试就统计一次
             if self.strategies[self.point]["users"] != 0:
+                logger.info("Aggregating current concurrency test results...")
                 self.c_runner.aggregate()
 
             if self.point < self.strategy_num - 1:
@@ -121,16 +122,15 @@ class StrategySupport:
         strategies = []
 
         if not strategy:
-            logger.info(f"📚 strategies information: {strategies}")
-            return strategies
+            logger.error("Argument strategy is required !!!")
+            raise RuntimeError("Argument strategy is required !!!")
 
         args = [int(_) for _ in strategy.split("_")]
 
         # 校验策略是否正确
         if len(args) != 4:
-            logger.info(f"⚠️ 策略非法")
-            logger.info(f"📚 strategies information: {strategies}")
-            return strategies
+            logger.error("Argument strategy is illegal !!!")
+            raise RuntimeError("Argument strategy is illegal !!!")
 
         start, end, step, duration = args
 
