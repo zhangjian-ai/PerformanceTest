@@ -3,6 +3,7 @@ import json
 import time
 import inspect
 import logging.config
+import logging.handlers
 
 from functools import wraps
 from google.protobuf import json_format
@@ -82,7 +83,7 @@ def set_logging(loglevel, logfile=None):
         "disable_existing_loggers": False,
         "formatters": {
             "default": {
-                "format": f"[%(asctime)s] %(filename)-12s [%(lineno)-3d] | %(name)s: %(message)s",
+                "format": f"[%(asctime)s] %(filename)-12s [%(lineno)-3d] | %(levelname)s | %(name)s: %(message)s",
                 "datefmt": '%Y-%m-%d %H:%M:%S'
             },
             "plain": {
@@ -123,9 +124,11 @@ def set_logging(loglevel, logfile=None):
             "class": "logging.FileHandler",
             "filename": logfile,
             "formatter": "default",
+            "mode": "w"
         }
-        LOGGING_CONFIG["loggers"]["locust"]["handlers"].append("file")
-        LOGGING_CONFIG["root"]["handlers"].append("file")
+        LOGGING_CONFIG["root"]["handlers"] = ["file"]
+        LOGGING_CONFIG["loggers"]["locust"]["handlers"] = ["file"]
+        LOGGING_CONFIG["loggers"]["locust.stats_logger"]["handlers"] = ["file"]
 
     logging.config.dictConfig(LOGGING_CONFIG)
 
@@ -221,4 +224,3 @@ def retry(count: int = 10, interval: int = 2, throw: bool = True):
         return inner
 
     return outer
-

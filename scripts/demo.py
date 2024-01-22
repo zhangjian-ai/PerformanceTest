@@ -1,6 +1,7 @@
 from locust import events, FastHttpUser
 
 from libs.framework.crunner import CRunner
+from libs.framework.utils import logger
 
 
 @events.init_command_line_parser.add_listener

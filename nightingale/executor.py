@@ -1,3 +1,5 @@
+import importlib
+import logging
 import os
 import sys
 import locust
@@ -6,11 +8,10 @@ import inspect
 sys.path.insert(0, os.getcwd())
 
 from importlib.machinery import SourceFileLoader
-from locust.argument_parser import parse_options
+from locust.argument_parser import parse_options, get_parser
 from locust.main import create_environment, is_user_class
 
 from libs.settings import LOCUST_DIR
-from libs.framework.hooks import *
 from libs.framework.users import TestUser
 from libs.framework.crunner import CRunner
 from libs.framework.strategy import DefaultStrategy
@@ -33,7 +34,11 @@ class Executor:
         # set log
         set_logging(cmd.get("loglevel", "INFO"), cmd.get("logfile"))
 
-        #
+        # load builtin hooks
+        importlib.import_module("libs.framework.hooks")
+
+        # logger
+        self.logger = logging.getLogger("locust.runners")
 
     def _test_before(self):
         """
@@ -66,9 +71,6 @@ class Executor:
         # command line args
         self.options = parse_options()
 
-        if hasattr(self.options, "h"):
-            logger.error(self.options)
-
         # env
         self.env = create_environment(
             user_classes, self.options, events=locust.events, shape_class=DefaultStrategy(),
@@ -79,14 +81,14 @@ class Executor:
         self.env.create_local_runner()
 
         # c_runner
-        self.c_runner_class = c_runner_classes[0](self.env)
+        self.env.c_runner = c_runner_classes[0](self.env)
 
     def _test(self):
         """
         测试执行
         """
         # perform init
-        self.env.events.init.fire(environment=self.env, runner=self.env.runner, c_runner=self.c_runner_class)
+        self.env.events.init.fire(environment=self.env, runner=self.env.runner)
 
         # perform performance test
         self.env.runner.start_shape()

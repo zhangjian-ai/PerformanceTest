@@ -43,7 +43,7 @@ class DefaultStrategy(LoadTestShape):
         self.begin = round(time.time() * 1000)
         self.finish = None
 
-    def enable(self, environment, c_runner):
+    def enable(self, environment):
         """
         配置各种信息
         """
@@ -51,7 +51,7 @@ class DefaultStrategy(LoadTestShape):
         self.strategy_num = len(self.strategies)
 
         self.env = environment
-        self.c_runner = c_runner
+        self.c_runner = environment.c_runner
 
         # 启动出发策略执行
         self.reset_time()
@@ -122,14 +122,12 @@ class StrategySupport:
         strategies = []
 
         if not strategy:
-            logger.error("Argument strategy is required !!!")
             raise RuntimeError("Argument strategy is required !!!")
 
         args = [int(_) for _ in strategy.split("_")]
 
         # 校验策略是否正确
         if len(args) != 4:
-            logger.error("Argument strategy is illegal !!!")
             raise RuntimeError("Argument strategy is illegal !!!")
 
         start, end, step, duration = args

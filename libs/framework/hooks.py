@@ -23,7 +23,7 @@ def _(parser):
     parser.add_argument("--strategy_mode", type=int, default=0, help="策略模式。0 并发间配置间隔；1 并发间没有间隔；2 去掉所有缓冲时间")
 
     # 测试人员
-    parser.add_argument("--tester", help="测试人员名字")
+    parser.add_argument("--tester", default="夜莺", help="测试人员名字")
 
     # k8s 配置
     parser.add_argument("--kube_ns", help="kubernetes namespace 名称")
@@ -38,17 +38,6 @@ def _(parser):
     parser.add_argument("--recipients", nargs="+", default=[], help="收件人邮箱 多个用空格隔开")
 
 
-@events.init.add_listener
-def _(environment, **kwargs):
-    # 校验shape类型
-    if not isinstance(environment.shape_class, DefaultStrategy):
-        raise RuntimeError("shape_class 不是 DefaultStrategy 的实例")
-
-    # 只在主节点为策略类绑定信息
-    if isinstance(environment.runner, (MasterRunner, LocalRunner)):
-        environment.shape_class.enable(environment, kwargs["c_runner"])
-
-
 @events.test_start.add_listener
 def _(environment, **kwargs):
     """
@@ -59,8 +48,16 @@ def _(environment, **kwargs):
     :return:
     """
     try:
+        # 校验shape类型
+        if not isinstance(environment.shape_class, DefaultStrategy):
+            raise RuntimeError("shape_class 不是 DefaultStrategy 的实例")
+
+        # 只在主节点为策略类绑定信息
         if isinstance(environment.runner, (MasterRunner, LocalRunner)):
-            # 主节点初始化环境
+            environment.shape_class.enable(environment)
+
+        # 主节点初始化环境
+        if isinstance(environment.runner, (MasterRunner, LocalRunner)):
             environment.shape_class.c_runner.set_up()
 
         if isinstance(environment.runner, (MasterRunner, LocalRunner)):
@@ -71,12 +68,11 @@ def _(environment, **kwargs):
             ScheduleJob.run()
 
     except Exception as e:
-        logger.error(f"[ test_start ]测试异常终止({e})\n\n{traceback.format_exc()}")
-
-        # 终止所有测试进程
-        os.system("kill -9 $(ps -ef | grep 'locust' | awk '{print $2}')")
+        logger.info(f"[ test_start ]测试异常终止({e}){traceback.format_exc()}")
 
         logger.info("Test is finished with error")
+
+        os.system("kill -9 $(ps -ef | grep 'executor.py' | awk '{print $2}')")
 
 
 @events.test_stop.add_listener
@@ -95,9 +91,9 @@ def _(environment, **kwargs):
 
         except Exception as e:
             logger.error(f"[ test_stop ]测试异常终止({e})\n\n{traceback.format_exc()}")
-            # 终止所有测试进程
-            os.system("kill -9 $(ps -ef | grep 'locust' | awk '{print $2}')")
 
-            logger.info("Test is finished with error")
+            logger.error("Test is finished with error")
         else:
             logger.info("Test is finished")
+        finally:
+            os.system("kill -9 $(ps -ef | grep 'executor.py' | awk '{print $2}')")
