@@ -11,4 +11,4 @@ class TestUser(FastHttpUser):
 
     @task
     def task(self):
-        self.environment.shape_class.c_runner.call(self)
+        self.environment.c_runner.call(self)

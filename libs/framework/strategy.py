@@ -3,6 +3,7 @@ import time
 from typing import Optional, Tuple
 from locust import LoadTestShape
 
+from libs.framework.schedule import ScheduleJob
 from libs.framework.utils import logger
 
 
@@ -51,12 +52,17 @@ class DefaultStrategy(LoadTestShape):
         self.strategy_num = len(self.strategies)
 
         self.env = environment
-        self.c_runner = environment.c_runner
+
+        # 初始化操作
+        environment.c_runner.set_up()
 
         # 启动出发策略执行
         self.reset_time()
         self.env.stats.reset_all()
+
+        # 调度任务开始执行
         self.start = True
+        ScheduleJob.run()
 
     def tick(self) -> Optional[Tuple[int, float]]:
         # 等待locust文件通知

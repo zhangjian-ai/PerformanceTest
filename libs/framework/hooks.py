@@ -56,17 +56,6 @@ def _(environment, **kwargs):
         if isinstance(environment.runner, (MasterRunner, LocalRunner)):
             environment.shape_class.enable(environment)
 
-        # 主节点初始化环境
-        if isinstance(environment.runner, (MasterRunner, LocalRunner)):
-            environment.shape_class.c_runner.set_up()
-
-        if isinstance(environment.runner, (MasterRunner, LocalRunner)):
-            # 通知策略开始执行
-            environment.shape_class.start = True
-
-            # 调度任务开始执行
-            ScheduleJob.run()
-
     except Exception as e:
         logger.info(f"[ test_start ]测试异常终止({e}){traceback.format_exc()}")
 
@@ -87,7 +76,7 @@ def _(environment, **kwargs):
     if isinstance(environment.runner, (MasterRunner, LocalRunner)):
         try:
             # 执行后置
-            environment.shape_class.c_runner.tear_down()
+            environment.c_runner.tear_down()
 
         except Exception as e:
             logger.error(f"[ test_stop ]测试异常终止({e})\n\n{traceback.format_exc()}")
