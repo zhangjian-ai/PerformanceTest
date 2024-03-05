@@ -7,8 +7,8 @@ from email.mime.text import MIMEText
 from email.utils import formataddr
 from email.mime.base import MIMEBase
 
-from libs.framework.utils import logger
-from libs.settings import BASE_DIR
+from framework.utils import logger
+from nightingale import BASE_DIR
 
 
 class Mail:
@@ -17,6 +17,7 @@ class Mail:
     """
 
     def __init__(self, options):
+        self.enable = True
         self.smtp_server = options.smtp_server
         self.ssl_port = options.ssl_port
         self.sender_name = options.sender_name
@@ -25,7 +26,8 @@ class Mail:
         self.recipients = options.recipients
 
         if not all([self.from_addr, self.password, self.recipients]):
-            raise RuntimeError("无法初始化Mail，缺少必要的参数")
+            logger.warning("无法初始化Mail，缺少必要的参数")
+            self.enable = False
 
     def send_mail(self, msg: MIMEBase):
         try:

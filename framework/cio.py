@@ -63,7 +63,7 @@ def dump_json(path, content, intent=None):
         json.dump(content, f, ensure_ascii=False, indent=intent)
 
 
-def load_yaml(path):
+def load_yaml(path: str = ""):
     """
     加载yaml文件
     :param path:

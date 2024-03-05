@@ -1,21 +1,21 @@
-import importlib
-import logging
 import os
 import sys
 import locust
 import inspect
+import logging
+import importlib
+
+from importlib.machinery import SourceFileLoader
+from locust.main import create_environment, is_user_class
 
 sys.path.insert(0, os.getcwd())
 
-from importlib.machinery import SourceFileLoader
-from locust.argument_parser import parse_options, get_parser
-from locust.main import create_environment, is_user_class
-
-from libs.settings import LOCUST_DIR
-from libs.framework.users import TestUser
-from libs.framework.crunner import CRunner
-from libs.framework.strategy import DefaultStrategy
-from libs.framework.utils import parse_args, set_logging
+from framework.crunner import CRunner
+from framework.parser import get_empty_argument_parser, setup_parser_arguments
+from framework.strategy import DefaultStrategy
+from framework.users import TestUser
+from framework.utils import parse_args, set_logging
+from nightingale import LOCUST_DIR
 
 
 class Executor:
@@ -35,7 +35,7 @@ class Executor:
         set_logging(cmd.get("loglevel", "INFO"), cmd.get("logfile"))
 
         # load builtin hooks
-        importlib.import_module("libs.framework.hooks")
+        importlib.import_module("framework.hooks")
 
         # logger
         self.logger = logging.getLogger("locust.runners")
@@ -50,8 +50,27 @@ class Executor:
         source = SourceFileLoader(module_name, self.locust_file_full_path)
         module = source.load_module(module_name)
 
+        # parse command line args
+        parser = get_empty_argument_parser()
+        setup_parser_arguments(parser)
+        locust.events.init_command_line_parser.fire(parser=parser)
+
+        if sys.argv.count("-h") == 1:
+            sys.argv.insert(sys.argv.index("-h") + 1, "help")
+
+        self.options = parser.parse_args(args=None)
+
+        if sys.argv.count("-h") == 1:
+            parser.cmd.show()
+            sys.exit(0)
+
+        if not self.options.__contains__("host"):
+            self.logger.error("命令行参数 host 必须提供")
+            sys.exit(-1)
+
         # load user_class shape_class c_runner_class
         user_classes = list()
+
         # shape_classes = list()
         c_runner_classes = list()
 
@@ -63,13 +82,10 @@ class Executor:
                 c_runner_classes.append(value)
 
         if len(c_runner_classes) != 1:
-            raise RuntimeError(f"目标文件中要求有且仅有一个 shape_class")
+            raise RuntimeError(f"目标文件中要求有且仅有一个 runner_class")
 
         if len(user_classes) == 0:
             user_classes.append(TestUser)
-
-        # command line args
-        self.options = parse_options()
 
         # env
         self.env = create_environment(

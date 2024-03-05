@@ -9,10 +9,10 @@ from requests import session
 from email.mime.image import MIMEImage
 from kubernetes import client, config
 
-from libs.framework.cfaker import Dynamic
-from libs.framework.cio import load_yaml
-from libs.framework.schedule import ScheduleJob
-from libs.settings import CONFIG_DIR
+from framework.cfaker import Dynamic
+from framework.cio import load_yaml
+from framework.schedule import ScheduleJob
+from nightingale import CONFIG_DIR
 
 
 def chart(x_axis: list, y_axis: Optional[Tuple[str, list] or List[Tuple[str, list]]],
@@ -135,7 +135,7 @@ class GrafanaMonitor:
     """
 
     def __init__(self, spec: str):
-        self.grafana = load_yaml("")
+        self.grafana = load_yaml()
         self.params = self.grafana.get(spec)
 
         if not self.params:

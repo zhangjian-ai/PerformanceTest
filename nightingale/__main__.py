@@ -4,14 +4,18 @@ import time
 
 sys.path.insert(0, os.getcwd())
 
-from libs.settings import LOG_DIR
-from libs.framework.utils import parse_args
+from nightingale import LOG_DIR
+from framework.utils import parse_args
+from nightingale.executor import Executor
 
 # 命令行参数
 cmd = parse_args(sys.argv[1:])
 
 if not cmd.get("f"):
     raise RuntimeError("locust 脚本文件缺失")
+
+if cmd.__contains__("h"):
+    Executor().run()
 
 file: str = cmd.get("f")
 
@@ -40,4 +44,3 @@ try:
 
 except KeyboardInterrupt:
     os.system("kill -9 $(ps -ef | grep 'nightingale' | awk '{print $2}')")
-

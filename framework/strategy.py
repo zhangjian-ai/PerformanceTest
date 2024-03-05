@@ -3,8 +3,8 @@ import time
 from typing import Optional, Tuple
 from locust import LoadTestShape
 
-from libs.framework.schedule import ScheduleJob
-from libs.framework.utils import logger
+from framework.schedule import ScheduleJob
+from framework.utils import logger
 
 
 class DefaultStrategy(LoadTestShape):
@@ -80,7 +80,7 @@ class DefaultStrategy(LoadTestShape):
             # 只要当前阶段由用户在测试就统计一次
             if self.strategies[self.point]["users"] != 0:
                 logger.info("Aggregating current concurrency test results...")
-                self.c_runner.aggregate()
+                self.env.c_runner.aggregate()
 
             if self.point < self.strategy_num - 1:
                 self.point += 1

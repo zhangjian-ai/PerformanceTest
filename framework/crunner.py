@@ -7,9 +7,9 @@ from locust import User
 from locust.runners import MasterRunner, LocalRunner
 from locust.stats import calculate_response_time_percentile as cp
 
-from libs.framework.mail import Mail
-from libs.framework.schedule import ScheduleJob
-from libs.framework.monitor import LocalMonitor, KubernetesMonitor
+from framework.mail import Mail
+from framework.monitor import LocalMonitor, KubernetesMonitor
+from framework.schedule import ScheduleJob
 
 
 class CRunner(metaclass=ABCMeta):
@@ -107,11 +107,11 @@ class CRunner(metaclass=ABCMeta):
         """
         # 运行模式
         run_mode = "Local"
-        if self.env.parsed_options.master:
+        if hasattr(self.env.parsed_options, "master"):
             run_mode = "Distributed"
 
         # 测试节点数量
-        workers = self.env.parsed_options.expect_workers
+        workers = getattr(self.env.parsed_options, "expect_workers", 1)
 
         # 时间信息
         start = self.env.shape_class.begin / 1000
@@ -170,10 +170,11 @@ class CRunner(metaclass=ABCMeta):
         """
         mail = Mail(self.env.parsed_options)
 
-        # 生成邮件并发送
-        date = time.strftime('%Y-%m-%d %H:%M', time.localtime(self.env.shape_class.begin / 1000))
-        text = mail.text_instance(title=title, tables=self.tables, charts=[x[0:2] for x in self.charts],
-                                  tester=self.env.parsed_options.tester, date=date, **kwargs)
-        email = mail.mail_instance(content=text, subject=title,
-                                   charts=self.charts, annex_files=self.annexes)
-        mail.send_mail(email)
+        if mail.enable:
+            # 生成邮件并发送
+            date = time.strftime('%Y-%m-%d %H:%M', time.localtime(self.env.shape_class.begin / 1000))
+            text = mail.text_instance(title=title, tables=self.tables, charts=[x[0:2] for x in self.charts],
+                                      tester=self.env.parsed_options.tester, date=date, **kwargs)
+            email = mail.mail_instance(content=text, subject=title,
+                                       charts=self.charts, annex_files=self.annexes)
+            mail.send_mail(email)
