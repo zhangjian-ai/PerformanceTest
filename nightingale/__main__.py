@@ -5,8 +5,8 @@ import time
 sys.path.insert(0, os.getcwd())
 
 from nightingale import LOG_DIR
-from framework.utils import parse_args
-from nightingale.executor import Executor
+from nightingale.utils.utils import parse_args
+from nightingale.core.entrypoint import Executor
 
 # 命令行参数
 cmd = parse_args(sys.argv[1:])
@@ -23,8 +23,9 @@ file: str = cmd.get("f")
 log_file = os.path.join(LOG_DIR, f"nightingale_{os.path.splitext(file)[0]}.log")
 
 # 后台运行测试
-os.system(f"nohup python3 {os.getcwd()}/nightingale/executor.py {' '.join(sys.argv[1:])}"
-          f" --logfile {log_file} >/dev/null 2>&1 &")
+r = os.popen(f"nohup python3 {os.getcwd()}/nightingale/core/entrypoint.py {' '.join(sys.argv[1:])}"
+             f" --logfile {log_file} >/dev/null 2>&1 &")
+sys.stdout.write(r.read())
 
 # 打印日志内容
 time.sleep(3)

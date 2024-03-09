@@ -1,6 +1,6 @@
 from locust import events, FastHttpUser
 
-from framework.crunner import CRunner
+from nightingale.core.crunner import CRunner
 
 
 @events.init_command_line_parser.add_listener

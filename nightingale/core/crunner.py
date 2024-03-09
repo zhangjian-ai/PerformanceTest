@@ -7,9 +7,9 @@ from locust import User
 from locust.runners import MasterRunner, LocalRunner
 from locust.stats import calculate_response_time_percentile as cp
 
-from framework.mail import Mail
-from framework.monitor import LocalMonitor, KubernetesMonitor
-from framework.schedule import ScheduleJob
+from nightingale.utils.mail import Mail
+from nightingale.utils.monitor import LocalMonitor, KubernetesMonitor
+from nightingale.core.corntab import ScheduleJob
 
 
 class CRunner(metaclass=ABCMeta):

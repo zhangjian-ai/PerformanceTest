@@ -4,8 +4,8 @@ import traceback
 from locust import events, stats
 from locust.runners import MasterRunner, LocalRunner
 
-from framework.strategy import DefaultStrategy
-from framework.utils import logger
+from nightingale.core.strategy import DefaultStrategy
+from nightingale.utils.utils import logger
 
 # 配置瞬时指标的统计窗口，默认是最近的10s
 stats.CURRENT_RESPONSE_TIME_PERCENTILE_WINDOW = 2
@@ -60,7 +60,7 @@ def _(environment, **kwargs):
 
         logger.info("Test is finished with error")
 
-        os.system("kill -9 $(ps -ef | grep 'executor.py' | awk '{print $2}')")
+        os.system("kill -9 $(ps -ef | grep 'entrypoint.py' | awk '{print $2}')")
 
 
 @events.test_stop.add_listener
@@ -84,4 +84,4 @@ def _(environment, **kwargs):
         else:
             logger.info("Test is finished")
         finally:
-            os.system("kill -9 $(ps -ef | grep 'executor.py' | awk '{print $2}')")
+            os.system("kill -9 $(ps -ef | grep 'entrypoint.py' | awk '{print $2}')")

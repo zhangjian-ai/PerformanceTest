@@ -10,12 +10,12 @@ from locust.main import create_environment, is_user_class
 
 sys.path.insert(0, os.getcwd())
 
-from framework.crunner import CRunner
-from framework.parser import get_empty_argument_parser, setup_parser_arguments
-from framework.strategy import DefaultStrategy
-from framework.users import TestUser
-from framework.utils import parse_args, set_logging
 from nightingale import LOCUST_DIR
+from nightingale.core.users import TestUser
+from nightingale.core.crunner import CRunner
+from nightingale.core.strategy import DefaultStrategy
+from nightingale.utils.utils import parse_args, set_logging
+from nightingale.utils.parser import get_empty_argument_parser, setup_parser_arguments
 
 
 class Executor:
@@ -35,7 +35,7 @@ class Executor:
         set_logging(cmd.get("loglevel", "INFO"), cmd.get("logfile"))
 
         # load builtin hooks
-        importlib.import_module("framework.hooks")
+        importlib.import_module("nightingale.core.hooks")
 
         # logger
         self.logger = logging.getLogger("locust.runners")
