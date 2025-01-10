@@ -80,7 +80,7 @@ Usage command-line args:
    ```shell
    python -m grpc_tools.protoc -I .\scripts\data\protos\ --python_out=scripts\data\protos\queryAssists\ --grpc_python_out=scripts\data\protos\queryAssists\ scripts\data\protos\queryAssists.proto
    
-   # -|  指定proto文件所在的目录
+   # -I  指定proto文件所在的目录
    # --python_out  指定proto 消息内容的python文件输出目录
    # --grpc_python_out  指定proto grpc定义内容的python文件输出目录
    ```
