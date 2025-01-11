@@ -4,12 +4,13 @@ import logging
 from abc import ABCMeta, abstractmethod
 
 from locust import User
+from locust.env import Environment
 from locust.runners import MasterRunner, LocalRunner
 from locust.stats import calculate_response_time_percentile as cp
 
-from nightingale.utils.mail import Mail
-from nightingale.utils.monitor import LocalMonitor, KubernetesMonitor
-from nightingale.core.corntab import ScheduleJob
+from honeypot.libs.mail import Mail
+from honeypot.libs.monitor import LocalMonitor, KubernetesMonitor
+from honeypot.core.corntab import ScheduleJob
 
 
 class CRunner(metaclass=ABCMeta):
@@ -18,9 +19,9 @@ class CRunner(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def __init__(self, environment, monitor=True):
-        self.monitor = monitor
+    def __init__(self, environment: Environment):
         self.env = environment
+        self.options = environment.parsed_options
 
         # 前后置操作通常只需要在主节点执行
         if isinstance(environment.runner, (MasterRunner, LocalRunner)):
@@ -38,9 +39,8 @@ class CRunner(metaclass=ABCMeta):
             self.annexes = []
 
             # 默认收集 rps、response_time 过程指标
-            if self.monitor:
-                self.lm = LocalMonitor(self.env)
-                ScheduleJob.add_job(self.lm.record_metrics, interval=2)
+            self.lm = LocalMonitor(self.env)
+            ScheduleJob.add_job(self.lm.record_metrics, interval=2)
 
             # k8s监控
             self.k8s = KubernetesMonitor(self.env.parsed_options.kube_ns, self.env.parsed_options.kube_config)
@@ -150,9 +150,8 @@ class CRunner(metaclass=ABCMeta):
         # 实时数据采集
         if ScheduleJob.running:
             # 本地监控
-            if self.monitor:
-                self.charts.append(self.lm.rps_chart)
-                self.charts.append(self.lm.response_time_chart)
+            self.charts.append(self.lm.rps_chart)
+            self.charts.append(self.lm.response_time_chart)
 
             # 静态资源
             if self.k8s.status:

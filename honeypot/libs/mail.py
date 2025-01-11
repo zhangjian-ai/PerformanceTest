@@ -7,8 +7,8 @@ from email.mime.text import MIMEText
 from email.utils import formataddr
 from email.mime.base import MIMEBase
 
-from nightingale.utils.utils import logger
-from nightingale import BASE_DIR
+from honeypot.libs.utils import logger
+from honeypot import BASE_DIR
 
 
 class Mail:
@@ -117,7 +117,7 @@ class Mail:
         if template is None:
             template = "simple_report.html"
 
-        env = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.join(BASE_DIR, "templates")))
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.join(BASE_DIR, "honeypot", "templates")))
         template = env.get_template(template)
 
         html = template.render(**kwargs)

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from nightingale.utils.utils import path_builder
+from honeypot.libs.utils import path_builder
 
 # 项目路径
 BASE_DIR = Path(__file__).resolve().parent.parent.__str__()

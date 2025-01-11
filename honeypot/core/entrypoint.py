@@ -10,12 +10,12 @@ from locust.main import create_environment, is_user_class
 
 sys.path.insert(0, os.getcwd())
 
-from nightingale import LOCUST_DIR
-from nightingale.core.users import TestUser
-from nightingale.core.crunner import CRunner
-from nightingale.core.strategy import DefaultStrategy
-from nightingale.utils.utils import parse_args, set_logging
-from nightingale.utils.parser import get_empty_argument_parser, setup_parser_arguments
+from honeypot import LOCUST_DIR
+from honeypot.core.users import TestUser
+from honeypot.core.crunner import CRunner
+from honeypot.core.strategy import DefaultStrategy
+from honeypot.libs.utils import parse_args, set_logging
+from honeypot.libs.parser import get_empty_argument_parser, setup_parser_arguments
 
 
 class Executor:
@@ -35,7 +35,7 @@ class Executor:
         set_logging(cmd.get("loglevel", "INFO"), cmd.get("logfile"))
 
         # load builtin hooks
-        importlib.import_module("nightingale.core.hooks")
+        importlib.import_module("honeypot.core.hooks")
 
         # logger
         self.logger = logging.getLogger("locust.runners")
@@ -125,7 +125,3 @@ class Executor:
         self._test()
 
         self._test_after()
-
-
-if __name__ == '__main__':
-    Executor().run()

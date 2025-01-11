@@ -6,7 +6,7 @@ import configargparse
 from locust.argument_parser import LocustArgumentParser
 
 
-class NightingaleCommandLine:
+class HoneypotCommandLine:
     """
     命令行工具
     """
@@ -26,13 +26,13 @@ class NightingaleCommandLine:
         sys.stdout.write(content)
 
 
-class NightingaleArgumentParser(LocustArgumentParser):
+class HoneypotArgumentParser(LocustArgumentParser):
     """
     重写 LocustArgumentParser 实现命令行参数记录
     """
 
-    def __init__(self, cmd: NightingaleCommandLine, *args, **kwargs):
-        super(NightingaleArgumentParser, self).__init__(*args, **kwargs)
+    def __init__(self, cmd: HoneypotCommandLine, *args, **kwargs):
+        super(HoneypotArgumentParser, self).__init__(*args, **kwargs)
         self.cmd = cmd
 
     def add_argument(self, *args, **kwargs) -> configargparse.Action:
@@ -40,12 +40,15 @@ class NightingaleArgumentParser(LocustArgumentParser):
             self.cmd.store(*args, **kwargs)
 
         kwargs.pop("show", None)
-        return super(NightingaleArgumentParser, self).add_argument(*args, **kwargs)
+        return super(HoneypotArgumentParser, self).add_argument(*args, **kwargs)
 
 
-def get_empty_argument_parser(add_help=False, default_config_files=["~/.locust.conf", "locust.conf"]):
-    parser = NightingaleArgumentParser(
-        NightingaleCommandLine(),
+def get_empty_argument_parser(add_help=False, default_config_files=None):
+    if default_config_files is None:
+        default_config_files = ["~/.locust.conf", "locust.conf"]
+
+    parser = HoneypotArgumentParser(
+        HoneypotCommandLine(),
         default_config_files=default_config_files,
         add_env_var_help=False,
         add_config_file_help=False,

@@ -11,7 +11,7 @@
 1. 易于扩展的设计模式，你的测试脚本必须放在 `scripts` 目录下，包括你使用到的测试数据；
 2. 使用框架了解 `CRunner` 基类的实现逻辑，因为测试脚本开发必须使用这个类；
 3. 自定义脚本主要包含命令行参数定义和`CRunner`子类的实现；
-4. 所有虚拟用户共用一个`CRunner`子类实例（你自己写的那个Runner类）；
+4. 所有虚拟用户共用一个`CRunner`子类实例（你实现的CRunner子类）；
 
 
 
@@ -97,43 +97,43 @@ Usage command-line args:
 
 from locust import events
 
-from hamster.core.crunner import CRunner
-from hamster.core.users import TestUser
-from hamster.utils.utils import logger
+from honeypot.core.crunner import CRunner
+from honeypot.core.users import TestUser
+from honeypot.libs.utils import logger
 
 
 @events.init_command_line_parser.add_listener
 def _(parser):
-    """
-    注册自定义命令行参数。用法同python的argparse
-    """
+   """
+   注册自定义命令行参数。用法同python的argparse
+   """
 
-    parser.add_argument("--name", show=True, default="", help="演示命令行参数注册")
+   parser.add_argument("--name", show=True, default="", help="演示命令行参数注册")
 
 
 class DemoRunner(CRunner):
-    """·
-    自定义runner
-    """
+   """·
+   自定义runner
+   """
 
-    def __init__(self, environment):
-        super().__init__(environment)
-        
-        # options属性可以通过点号运算符获取命令行参数，这是从父类继承的
-        self.options
-        
-	# 测试接口逻辑在call方法里面实现
-    def call(self, user: TestUser):
-        # catch_response=True 表示我们可以自定义成功还是失败结果
-        with user.client.post(url=self.options.host, data={}, catch_response=True) as resp:
-            res = resp.json()
-            
-            # 判断接口成功还是失败
-            if res["code"] == 0:
-                resp.success()
-            else:
-                logger.error(resp_data)
-                resp.failure("请求错误")
+   def __init__(self, environment):
+      super().__init__(environment)
+
+      # options属性可以通过点号运算符获取命令行参数，这是从父类继承的
+      self.options
+
+   # 测试接口逻辑在call方法里面实现
+   def call(self, user: TestUser):
+      # catch_response=True 表示我们可以自定义成功还是失败结果
+      with user.client.post(url=self.options.host, data={}, catch_response=True) as resp:
+         res = resp.json()
+
+         # 判断接口成功还是失败
+         if res["code"] == 0:
+            resp.success()
+         else:
+            logger.error(res)
+            resp.failure("请求错误")
 ```
 
 
@@ -144,9 +144,9 @@ class DemoRunner(CRunner):
 
 ```python
 # 查询命令行参数，打印所有可用的参数及参数介绍
-python hamster -f 脚本文件.py -h
+python honeypot -f 脚本文件.py -h
 
 # 执行测试
-python hamster -f 脚本文件.py --host 测试地址 --strategy 测试策略 --recipients 收件人
+python honeypot -f 脚本文件.py --host 测试地址 --strategy 测试策略 --recipients 收件人
 ```
 

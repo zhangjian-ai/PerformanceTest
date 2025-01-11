@@ -3,8 +3,8 @@ import time
 from typing import Optional, Tuple
 from locust import LoadTestShape
 
-from nightingale.core.corntab import ScheduleJob
-from nightingale.utils.utils import logger
+from honeypot.core.corntab import ScheduleJob
+from honeypot.libs.utils import logger
 
 
 class DefaultStrategy(LoadTestShape):

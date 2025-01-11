@@ -9,10 +9,10 @@ from requests import session
 from email.mime.image import MIMEImage
 from kubernetes import client, config
 
-from nightingale import CONFIG_DIR
-from nightingale.utils.cio import load_yaml
-from nightingale.utils.cfaker import Dynamic
-from nightingale.core.corntab import ScheduleJob
+from honeypot import CONFIG_DIR
+from honeypot.libs.cio import load_yaml
+from honeypot.libs.cfaker import Dynamic
+from honeypot.core.corntab import ScheduleJob
 
 
 def chart(x_axis: list, y_axis: Optional[Tuple[str, list] or List[Tuple[str, list]]],

@@ -1,6 +1,7 @@
-from locust import events, FastHttpUser
+from locust import events
 
-from nightingale.core.crunner import CRunner
+from honeypot.core.users import TestUser
+from honeypot.core.crunner import CRunner
 
 
 @events.init_command_line_parser.add_listener
@@ -20,6 +21,6 @@ class DemoRunner(CRunner):
     def __init__(self, environment):
         super().__init__(environment)
 
-    def call(self, user: FastHttpUser):
+    def call(self, user: TestUser):
         user.client.request(method="post", url=user.host,
                             json={"name": "admin", "password": "admin123"})

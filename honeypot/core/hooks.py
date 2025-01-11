@@ -4,8 +4,8 @@ import traceback
 from locust import events, stats
 from locust.runners import MasterRunner, LocalRunner
 
-from nightingale.core.strategy import DefaultStrategy
-from nightingale.utils.utils import logger
+from honeypot.core.strategy import DefaultStrategy
+from honeypot.libs.utils import logger
 
 # 配置瞬时指标的统计窗口，默认是最近的10s
 stats.CURRENT_RESPONSE_TIME_PERCENTILE_WINDOW = 2
