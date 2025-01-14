@@ -2,7 +2,6 @@ import io
 import os
 import math
 import time
-import logging
 
 from typing import Optional, Tuple, List
 from requests import session
@@ -10,6 +9,7 @@ from email.mime.image import MIMEImage
 from kubernetes import client, config
 
 from honeypot import CONFIG_DIR
+from honeypot.libs.utils import logger
 from honeypot.libs.cio import load_yaml
 from honeypot.libs.cfaker import Dynamic
 from honeypot.core.corntab import ScheduleJob
@@ -32,6 +32,9 @@ def chart(x_axis: list, y_axis: Optional[Tuple[str, list] or List[Tuple[str, lis
     :param points: 画布上最大的坐标点数
     :return:
     """
+    import matplotlib
+    matplotlib.use("agg")
+    
     import matplotlib.pyplot as plot
     from matplotlib import ticker
 
@@ -45,7 +48,7 @@ def chart(x_axis: list, y_axis: Optional[Tuple[str, list] or List[Tuple[str, lis
     colors = ["#00AA00", "#778899", "#CC6600", "#0088A8", "#990099", "#BBBB00"]
 
     if not x_axis or not y_axis:
-        logging.warning("图表绘制异常，请检查参数 x_axis、y_axis")
+        logger.warning("图表绘制异常，请检查参数 x_axis、y_axis")
         raise RuntimeError("图表绘制异常，请检查参数 x_axis、y_axis")
     else:
         line_count = len(y_axis)
@@ -166,7 +169,7 @@ class GrafanaMonitor:
             try:
                 res = self.client.request(method="GET", url=self.host, params=params)
             except Exception as e:
-                logging.info(f"panel 截图失败。panelId: {panel.get('panelId')} \nERROR: {str(e)}")
+                logger.info(f"panel 截图失败。panelId: {panel.get('panelId')} \nERROR: {str(e)}")
                 continue
 
             if res.status_code == 200:
@@ -197,7 +200,7 @@ class KubernetesMonitor:
 
             # 检查配置
             if not os.path.exists(self.config_yaml):
-                logging.error(f"kubernetes 目标配置文件不存在({self.config_yaml})")
+                logger.error(f"kubernetes 目标配置文件不存在({self.config_yaml})")
 
             # 创建链接
             else:
@@ -234,7 +237,7 @@ class KubernetesMonitor:
         try:
             res = self.core_api.list_namespaced_pod(namespace=self.namespace)
         except Exception as e:
-            logging.error(f"k8s 微服务及POD信息获取失败: {str(e)}")
+            logger.error(f"k8s 微服务及POD信息获取失败: {str(e)}")
             self.status = False
         else:
             for pod in res.items:
@@ -280,7 +283,7 @@ class KubernetesMonitor:
             res = self.core_api.list_namespaced_resource_quota(namespace=self.namespace)
             resource = res.items[0].status
         except Exception as e:
-            logging.error(f"k8s ns 信息获取失败: {str(e)}")
+            logger.error(f"k8s ns 信息获取失败: {str(e)}")
         else:
             total = resource.hard
             line1 = [self.namespace, "资源总量",
@@ -321,7 +324,7 @@ class KubernetesMonitor:
             res1 = self.custom_api.list_namespaced_custom_object('apps', 'v1', self.namespace, 'statefulsets')
             res2 = self.custom_api.list_namespaced_custom_object('apps', 'v1', self.namespace, 'replicasets')
         except Exception as e:
-            logging.error(f"k8s 副本集信息获取失败: {str(e)}")
+            logger.error(f"k8s 副本集信息获取失败: {str(e)}")
         else:
             replicas = {}
             for item in res1["items"] + res2["items"]:
@@ -365,7 +368,7 @@ class KubernetesMonitor:
                 # 生成表格时，再查询一次重启次数，与测试开始的记录做差，得到过程中的重启次数
                 res = self.core_api.list_namespaced_pod(namespace=self.namespace)
             except Exception as e:
-                logging.error(f"k8s 微服务及POD信息获取失败: {str(e)}")
+                logger.error(f"k8s 微服务及POD信息获取失败: {str(e)}")
             else:
                 for pod in res.items:
                     pod_name = pod.metadata.name
@@ -392,7 +395,7 @@ class KubernetesMonitor:
             try:
                 res = self.custom_api.list_namespaced_custom_object('metrics.k8s.io', 'v1beta1', self.namespace, 'pods')
             except Exception as e:
-                logging.error(f"k8s metric信息查询失败: {str(e)}")
+                logger.error(f"k8s metric信息查询失败: {str(e)}")
                 self.metric = False
             else:
                 temp = {}
