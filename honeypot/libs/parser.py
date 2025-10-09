@@ -90,6 +90,7 @@ def setup_parser_arguments(parser):
 
     parser.add_argument(
         "--host",
+        default="http://example.com",
         show=True,
         help="Host and port to load test in the following format: http://10.21.32.33:80"
     )

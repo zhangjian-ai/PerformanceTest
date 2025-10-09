@@ -17,6 +17,7 @@ class DemoRunner(CRunner):
     """
     自定义runner
     """
+    host = "http://www.baidu.com"
 
     def __init__(self, environment):
         super().__init__(environment)
