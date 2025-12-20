@@ -14,3 +14,6 @@ LOG_DIR = path_builder(os.path.join(BASE_DIR, "logs"))
 
 # 配置文件路径
 CONFIG_DIR = path_builder(os.path.join(LOCUST_DIR, "config"))
+
+# 报告路径
+REPORT_DIR = path_builder(os.path.join(BASE_DIR, "report"))

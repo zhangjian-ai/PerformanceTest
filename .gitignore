@@ -14,5 +14,6 @@
 
 .DS_Store
 .idea
+*.eml
 
 #config/k8s

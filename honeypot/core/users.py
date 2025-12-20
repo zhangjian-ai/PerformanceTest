@@ -7,6 +7,7 @@ class TestUser(FastHttpUser):
     """
 
     def __init__(self, environment):
+        self.host = environment.c_runner.host
         super().__init__(environment)
 
     @task

@@ -1,5 +1,7 @@
 import os
 import sys
+import time
+
 import locust
 import inspect
 import logging
@@ -94,7 +96,25 @@ class Executor:
         )
 
         # create runner
-        self.env.create_local_runner()
+        if self.options.master:
+            if self.options.worker:
+                raise RuntimeError("The --master argument cannot be combined with --worker")
+            if self.options.expect_workers_max_wait and not self.options.expect_workers:
+                raise RuntimeError("The --expect-workers-max-wait argument only makes sense "
+                                   "when combined with --expect-workers")
+            self.env.create_master_runner(
+                master_bind_host=self.options.master_bind_host,
+                master_bind_port=self.options.master_bind_port)
+        elif self.options.worker:
+            try:
+                self.env.create_worker_runner(self.options.master_host, self.options.master_port)
+                self.logger.debug("Connected to locust master: %s:%s", self.options.master_host,
+                                  self.options.master_port)
+            except OSError as e:
+                self.logger.error("Failed to connect to the Locust master: %s", e)
+                sys.exit(-1)
+        else:
+            self.env.create_local_runner()
 
         # c_runner
         self.env.c_runner = c_runner_classes[0](self.env)
@@ -105,10 +125,29 @@ class Executor:
         """
         # perform init
         self.env.events.init.fire(environment=self.env, runner=self.env.runner)
+        runner = self.env.runner
+        if self.options.master:
+            # wait for worker nodes to connect
+            start_time = time.monotonic()
+            while len(runner.clients.ready) < self.options.expect_workers:
+                if self.options.expect_workers_max_wait and self.options.expect_workers_max_wait < time.monotonic() - start_time:
+                    self.logger.error("Gave up waiting for workers to connect.")
+                    runner.quit()
+                    sys.exit(1)
+                logging.info(
+                    "Waiting for workers to be ready, %s of %s connected", len(runner.clients.ready),
+                    self.options.expect_workers)
+
+                time.sleep(3)
 
         # perform performance test
-        self.env.runner.start_shape()
-        self.env.runner.shape_greenlet.join()
+        if not self.options.worker:
+            self.env.runner.start_shape()
+            self.env.runner.shape_greenlet.join()
+        else:
+            # worker 模式：等待 runner greenlet 完成（保持与 master 的连接并等待任务）
+            self.logger.info("Worker is ready and waiting for tasks from master...")
+            self.env.runner.greenlet.join()
 
     def _test_after(self):
         """

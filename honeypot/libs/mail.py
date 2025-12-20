@@ -8,7 +8,7 @@ from email.utils import formataddr
 from email.mime.base import MIMEBase
 
 from honeypot.libs.utils import logger
-from honeypot import BASE_DIR
+from honeypot import BASE_DIR, REPORT_DIR
 
 
 class Mail:
@@ -43,8 +43,9 @@ class Mail:
         except Exception as e:
             logger.error(f"❌ 邮件发送失败: {str(e)}")
 
+        finally:
             # 邮件发送失败就保存到本地
-            with open(os.path.join(BASE_DIR, "report.eml"), "w") as f:
+            with open(os.path.join(REPORT_DIR, "report.eml"), "w") as f:
                 f.write(msg.as_string())
                 logger.info("报告邮件已持久化保存到项目根目录")
 

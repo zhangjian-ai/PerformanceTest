@@ -22,7 +22,7 @@ def _(parser):
     parser.add_argument("--strategy_mode", show=True, type=int, default=0, help="策略模式。0 并发间配置间隔；1 并发间没有间隔；2 去掉所有缓冲时间")
 
     # 测试人员
-    parser.add_argument("--tester", show=True, default="夜莺", help="测试人员名字")
+    parser.add_argument("--tester", show=True, default="罐仔", help="测试人员名字")
 
     # k8s 配置
     parser.add_argument("--kube_ns", show=True, help="kubernetes namespace 名称")
@@ -31,9 +31,9 @@ def _(parser):
     # 邮件相关配置
     parser.add_argument("--smtp_server", show=True, default='smtp.exmail.qq.com', help="邮箱服务地址")
     parser.add_argument("--ssl_port", show=True, default='465', help="邮箱服务端口")
-    parser.add_argument("--sender_name", show=True, default='Performance-Test', help="发件人名称")
-    parser.add_argument("--from_addr", show=True, default=None, help="发件人邮箱")
-    parser.add_argument("--password", show=True, default=None, help="发件人邮箱密码")
+    parser.add_argument("--sender_name", show=True, default='罐仔', help="发件人名称")
+    parser.add_argument("--from_addr", show=True, default="", help="发件人邮箱")
+    parser.add_argument("--password", show=True, default="", help="发件人邮箱密码")
     parser.add_argument("--recipients", show=True, nargs="+", default=[], help="收件人邮箱 多个用空格隔开")
 
 
@@ -78,7 +78,7 @@ def _(environment, **kwargs):
             environment.c_runner.tear_down()
 
         except Exception as e:
-            logger.error(f"[ test_stop ]测试异常终止({e})\n\n{traceback.format_exc()}")
+            logger.error(f"[ test_stop ]测试异常终止\n{traceback.format_exc()}")
 
             logger.error("Test is finished with error")
         else:
