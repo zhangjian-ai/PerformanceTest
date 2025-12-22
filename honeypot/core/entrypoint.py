@@ -28,6 +28,10 @@ class Executor:
 
         # make sure locust file exists.
         self.locust_file = cmd.get("f")
+
+        if not self.locust_file.endswith(".py"):
+            self.locust_file += ".py"
+
         self.locust_file_full_path = os.path.join(LOCUST_DIR, self.locust_file)
 
         if not os.path.exists(self.locust_file_full_path):
