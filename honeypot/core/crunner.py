@@ -167,7 +167,6 @@ class CRunner(metaclass=ABCMeta):
         发送邮件
         :param title: 报告标题
         """
-        print(self.tables)
         mail = Mail(self.env.parsed_options)
 
         if mail.enable:
