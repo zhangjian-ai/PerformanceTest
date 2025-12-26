@@ -17,6 +17,7 @@ class CRunner(metaclass=ABCMeta):
     """
     自定义Runner抽象类
     """
+    host = ""
 
     @abstractmethod
     def __init__(self, environment: Environment):
